@@ -1,0 +1,24 @@
+packages:
+    hasktorch/ffi/codegen/*.cabal
+   
+    hasktorch/ffi/types/th/*.cabal
+    hasktorch/ffi/types/thc/*.cabal
+  
+    hasktorch/ffi/ffi/tests/*.cabal
+    hasktorch/ffi/ffi/th/*.cabal
+    hasktorch/ffi/ffi/thc/*.cabal
+  
+    hasktorch/signatures/types/*cabal
+    hasktorch/signatures/partial/*cabal
+    hasktorch/signatures/support/*cabal
+    hasktorch/signatures/*cabal
+  
+    hasktorch/indef/*cabal
+  
+    hasktorch/hasktorch/*cabal
+  
+    hasktorch/zoo/*cabal
+    
+
+    gruHaskell/*.cabal
+

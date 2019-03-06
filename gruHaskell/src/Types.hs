@@ -1,0 +1,5 @@
+
+
+data GRUCell = GRUCell {
+						wState :: 
+}
