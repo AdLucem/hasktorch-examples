@@ -14,25 +14,27 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  hs-source-dirs:      haskell/src
+  hs-source-dirs:      src
   exposed-modules:     Lib
-  build-depends:       base >= 4.7 && < 5,
+  build-depends:       base >= 4.7 && < 5
   default-language:    Haskell2010
 
 executable gruHaskell-exe
-  hs-source-dirs:      haskell/app
+  hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , gruHaskell
+                     , hasktorch (==0.0.1 || >0.0.1) && <0.0.2
   default-language:    Haskell2010
 
 test-suite gruHaskell-test
   type:                exitcode-stdio-1.0
-  hs-source-dirs:      haskell/test
+  hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
                      , gruHaskell
+                     , hasktorch (==0.0.1 || >0.0.1) && <0.0.2
                      , test-framework
                      , test-framework-quickcheck2
                      , QuickCheck

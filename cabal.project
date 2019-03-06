@@ -19,6 +19,7 @@ packages:
   
     hasktorch/zoo/*cabal
     
+    hasktorch/examples/*.cabal
 
     gruHaskell/*.cabal
 
