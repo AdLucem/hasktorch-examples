@@ -18,32 +18,9 @@ def print_details(gru):
     print("--------------------------------")
 
 
-def singleLayerGRU(input, initHidden, timesteps):
-
-    # defines our GRUCell object first
-    # this is a single GRU cell for an input vector
-    # so, a single RNN layer
-    gru = nn.GRUCell(INPUT_SIZE, HIDDEN_SIZE)
-
-    # make a container to capture the hidden states
-    # of our cell over time
-    hiddenStateAtTime = []
-
-    # append initial(random) hidden state to the container
-    hiddenStateAtTime.append(hiddenState)
-
-    # iterate over `n` time steps
-    for i in range(timesteps):
-
-        # at each iteration, the hidden state is updated
-        hiddenState = gru(inputTensor, hiddenState)
-
-        # the current hidden state is appended to the
-        # list of hidden states indexed by timestep
-        hiddenStateAtTime.append(hiddenState)
-
-
 if __name__ == "__main__":
+
+    # -------------------- initialization bit ---------------
 
     # defines a GRUCell object
     gru = nn.GRUCell(INPUT_SIZE, HIDDEN_SIZE)
@@ -61,47 +38,40 @@ if __name__ == "__main__":
 
     timeStates = []
 
-    #print("--------------------------------")
-    #print(gru.weight_ih)
-    #print(gru.weight_hh)
-    #print("--------------------------------")
+    # ----------------- forward bit ------------------------
 
-    # first time step
+    # first time step. hand-demonstrated iteration
+    # for one time step only
     # at each iteration, the hidden state is updated
     hiddenState = gru(inputTensor, hiddenState)
     timeStates.append(hiddenState)
-    print(gru.weight_ih)
-    print(gru.weight_hh)
-    print("--------------------------------")
         
     
     outputTensor = hiddenState
+
+    # ----------------- backprop bit -----------------------
+
+    # print the initial weights of the cell
+    print_details(gru)
 
     # arbitrary loss function
     loss = nn.L1Loss()
 
     # loss for our first timestep
     t1Loss = loss(outputTensor, targetTensor)
+ 
     # backprop the loss using pytorch's handy auto-backprop mechanism
-
     gru.zero_grad()
     t1Loss.backward()
     
-
-    # print the updated gradients
-    #print(gru.weight_ih.grad)
-    #print(gru.weight_hh.grad)
-    #print("--------------------------------")
 
     # and for the update, we'll use simple gradient descent
     # i.e: updatedWeights = weights - learning_rate * gradient
     # and a ridiculously large learning rate so that the change is noticeable 
     learningRate = 100
+
     gru.weight_ih = nn.Parameter(gru.weight_ih - (learningRate * gru.weight_ih.grad))
     gru.weight_hh = nn.Parameter(gru.weight_hh - (learningRate * gru.weight_hh.grad))
 
-    # print the updated weights
-    print(gru.weight_ih)
-    print(gru.weight_hh)
-    print("--------------------------------")
-    
+    # print the updated weights of the cell
+    print_details(gru)    
