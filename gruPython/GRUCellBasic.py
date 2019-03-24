@@ -8,7 +8,7 @@ INPUT_SIZE = 2
 HIDDEN_SIZE = 2
 OUTPUT_SIZE = 2
 BATCH_SIZE = 1
-TIME_STEPS = 10
+
 
 
 def print_details(gru):
