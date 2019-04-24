@@ -54,10 +54,14 @@ instance Show (GRUCell a b) where
 
 
 -- | Composable GRU RNN
--- TODO: I don't know the type level magic to make sure that `gruCell`
--- is an object of type GRUCell, and that the cells are composable
--- and connected. learn it maybe
-data GRNN gruCell = Single gruCell | Composable gruCell (GRNN gruCell)
+data GRNN a b = Single (GRUCell a b) | Composed (GRUCell a b) (GRNN a b)
 
-
+-- | show instance for GRNN
+-- TODO: standardize it acc. to the rest of the hasktorch library
+instance Show (GRNN a b) where
+    show (Single cell) = show cell
+    show (Composed cell rnn) =
+        show cell ++
+        "\n----------------------------------------\n"
+        ++ show rnn
 

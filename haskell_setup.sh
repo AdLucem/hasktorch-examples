@@ -11,4 +11,5 @@ make install
 cd ../../../../..
 ln -fs hasktorch/cabal/project.freeze-8.4.2 cabal.project.freeze
 ./make_cabal_local.sh
-source setenv
+cd hasktorch
+source hasktorch/setenv
