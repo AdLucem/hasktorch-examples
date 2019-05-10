@@ -21,7 +21,7 @@ executable fashion-mnist
                        hasktorch (==0.0.1 || >0.0.1) && <0.0.2,
                        QuickCheck,
                        mnist-idx,
-                       vector
-
+                       vector,
+                       dimensions
   default-language:    Haskell2010
 

@@ -19,12 +19,42 @@ import Data.IDX
 import Data.IDX.Internal
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Generic as V'
+import qualified Numeric.Dimensions as D
+import GHC.TypeLits
 
 -- importing tensor and functions to convert to tensors
 
-import Torch.Double
+import qualified Torch.Double as T
 
-------------------------------- READING IN IDX DATA ----------------------------
+------- Utils --------
+
+-- | Divvy up a vector into segments of size 'n'
+divvyN :: Int -> V.Vector Double -> [V.Vector Double]
+divvyN n vec = 
+  let
+    slice = fst $ V.splitAt n vec
+    remainder = snd $ V.splitAt n vec
+  in
+    if remainder == V.empty
+    then slice : []
+    else slice : (divvyN n remainder)
+
+
+------- Vectors To Tensors ---------
+
+-- mnist-idx stores the data as vectors, and we want to manipulate tensors,
+-- which is why we make a helper function to convert to Tensors
+
+-- | takes in a vector, and returns a (1, x) tensor 
+-- | from the vector
+toTensor :: (D.KnownDim a, KnownNat a) => V.Vector Double -> IO (T.Tensor '[1, a])
+toTensor vec = do
+    t <- T.fromList $ V.toList vec
+    case t of
+        Nothing -> return T.empty
+        Just x -> return x
+
+------- READING IN IDX DATA -------
 
 -- First off, we write functions to read in the IDX data files, like so:
 
@@ -32,31 +62,52 @@ import Torch.Double
 -- | This function reads the content of the file and
 -- | stores it within the library's handy IDXData type
 -- |which is encased within a Maybe.
-fetchDataFrom :: FilePath -> IO (Maybe IDXData)
-fetchDataFrom filename = do
+getData :: FilePath -> IO (Maybe IDXData)
+getData filename = do
     filedata  <- decodeIDXFile filename
     return filedata
 
 
 -- | This function processes the raw IDXData type
 -- | into a vector that gives us the dimensions of the data -
--- | (num_images, size_of_image_x, size_of_image_y) -
--- |and the raw data vector, separately.
-dataProcess :: Maybe IDXData -> (V.Vector Int, V.Vector Double)
--- `empty` is a function from Vector.Unboxed that returns
--- a new empty vector, in case there is no data returned
-dataProcess Nothing = (V.empty, V.empty)
+-- | (num_images, size_of_image_x, size_of_image_y)
+getDimensions :: Maybe IDXData -> [Int]
+-- returns empty list in case there is no data returned
+getDimensions Nothing = []
 -- but if there is data returned in the idx format, we
--- extract the dimensions and the raw data from the format
-dataProcess (Just idxdata) =
+-- extract the dimensions from the format
+getDimensions (Just idxdata) =
     let
       dim = idxDimensions idxdata
-      n = dim V.! 0
-      features = toVector idxdata
     in
-      (dim, features)
+      V.toList dim
 
 
+----------------------------------------------------------------
+-- | This function processes the raw IDXData type
+-- | into a vector that gives us the 
+-- | raw data tensors
+getTensors 
+  :: (D.KnownDim a, KnownNat a) 
+  => Maybe IDXData 
+  -> IO ([T.Tensor '[1, a]])
+-- returns empty list in case there is no data returned
+getTensors Nothing = mapM toTensor [V.empty]
+-- but if there is data returned in the idx format, we
+-- extract the data from the format and split the vector
+-- into tensors of size <feature_list_size>
+getTensors (Just idxdata) =
+  let
+    dim = idxDimensions idxdata
+    a = dim V.! 1
+    b = dim V.! 2
+    imageSize = a * b
+    featVectors = divvyN imageSize $ toVector idxdata
+    featTensors = mapM toTensor featVectors
+  in
+    featTensors 
+       
+----------------------------------------------------------------
 -- | This is a helper function to extract the
 -- | raw data vector from the IDXData type.
 toVector :: IDXData -> V.Vector Double
@@ -64,22 +115,7 @@ toVector (IDXDoubles _ _ vec) = vec
 toVector (IDXInts _ _ vec) = V.map fromIntegral vec
 
 
--- | this is a helper function to convert
--- | from a vector to a tensor of dimensions (m, n)
---toTensor :: Int ->
---            Int ->
---            V.Vector Double ->
---            IO (Tensor '[2, 3])
---toTensor m n vec =
---  let
---    tens = fromList $ V'.toList vec
---  in
---    case tens of
---      Nothing -> return Torch.Double.empty
---      Just x  -> return x
-
-
-------------------------------- READING IDX LABELS ----------------------------------
+-------- READING IDX LABELS -------
 
 -- Similarly, we write functions to read in the IDX labels files.
 -- These functions are separate because mnist-idx deals with

@@ -8,11 +8,17 @@
 -----------------------------------------------------------------------------------
 
 -------------------------------------- IMPORTS ------------------------------------
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Main where
 
 import qualified Data.Vector.Unboxed as V
+import qualified Numeric.Dimensions as D
+import GHC.TypeLits
 
+import qualified Torch.Double as T
 -- Local imports:
 
 import DataLoader
@@ -20,13 +26,6 @@ import DataLoader
 -- Training a convolutional neural net to classify pictures from the fashion-mnist dataset
 
 --------------------------------------- MAIN --------------------------------------
-
-getData :: FilePath -> IO ((V.Vector Int, V.Vector Double))
-getData filename = do
-    d <- fetchDataFrom filename
-    let d' = dataProcess d
-    return d'
-
 
 getLabels :: FilePath -> IO (V.Vector (Int))
 getLabels filename = do
@@ -36,4 +35,11 @@ getLabels filename = do
 
 
 -- | The driver function
-main = putStrLn "HELLO"
+main = do
+    d <- getData "fashion-mnist/fashion/t10k-images-idx3-ubyte"
+    (t :: [T.Tensor '[1, 784]]) <- getTensors d
+    putStrLn "HELLO"
+    --let dim = fst d
+    --let feat = snd d
+    --putStrLn $ show dim
+    --putStrLn $ show $ length feat

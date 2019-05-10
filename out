@@ -1,0 +1,6 @@
+Build profile: -w ghc-8.4.2 -O1
+In order, the following will be built (use -v for more details):
+ - fashion-mnist-0.1.0.0 (exe:fashion-mnist) (file src/DataLoader.hs changed)
+Preprocessing executable 'fashion-mnist' for fashion-mnist-0.1.0.0..
+Building executable 'fashion-mnist' for fashion-mnist-0.1.0.0..
+[1 of 2] Compiling DataLoader       ( src/DataLoader.hs, /home/adlucem/Work/gru-encoder-decoder/dist-newstyle/build/x86_64-linux/ghc-8.4.2/fashion-mnist-0.1.0.0/x/fashion-mnist/build/fashion-mnist/fashion-mnist-tmp/DataLoader.o )
