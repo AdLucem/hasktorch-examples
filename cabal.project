@@ -22,4 +22,4 @@ packages:
     hasktorch/examples/*.cabal
 
     gruHaskell/*.cabal
-
+    fashion-mnist/*.cabal
