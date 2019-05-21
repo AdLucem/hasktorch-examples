@@ -23,3 +23,4 @@ packages:
 
     gruHaskell/*.cabal
     fashion-mnist/*.cabal
+    elman/*.cabal
