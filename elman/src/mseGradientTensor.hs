@@ -32,7 +32,7 @@ meanSquareErr :: Reifies s W
               => BVar s Double
               -> BTensor s 
               -> BTensor s 
-              -> BTensor s
+              -> BAccReal s
 meanSquareErr n xt yt = T.sumall $ (xt - yt) ** 2
 
 
