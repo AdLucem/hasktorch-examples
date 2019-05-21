@@ -33,7 +33,7 @@ meanSquareErr :: Reifies s W
               -> BTensor s 
               -> BTensor s 
               -> BTensor s
-meanSquareErr n xt yt = (xt - yt) ** 2
+meanSquareErr n xt yt = T.sumall $ (xt - yt) ** 2
 
 
 main = do
