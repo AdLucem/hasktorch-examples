@@ -9,8 +9,11 @@ import qualified Torch.Double as T
 import qualified Numeric.Dimensions as D
 import GHC.TypeLits
 import Numeric.Backprop
+import Data.Typeable
 --import Numeric.Backprop.Internal
 
+
+type Toy = T.Tensor '[1, 2]
 
 type BTensor s = BVar s (T.Tensor '[1, 2]) 
 
@@ -27,13 +30,44 @@ makeTensor ls = do
         Nothing -> return T.empty
         Just x -> return x
 
+---------- Tensor Math Functions -----------
 
-meanSquareErr :: Reifies s W 
-              => BVar s Double
-              -> BTensor s 
-              -> BTensor s 
-              -> BAccReal s
-meanSquareErr n xt yt = T.sumall $ (xt - yt) ** 2
+
+-- | 'xt' is the predicted
+squareErr :: Reifies s W
+          => BTensor s  
+          -> BTensor s
+          -> BTensor s
+squareErr actual xt = (xt - actual) ** 2
+
+
+squareErr' :: Toy
+           -> Toy  
+           -> Toy
+squareErr' actual xt = 
+    gradBP (squareErr $ auto actual) xt
+
+{-
+mean :: Reifies s W 
+     => BVar s Double
+     -> BTensor s  
+     -> BAccReal s
+mean n t = (sumallBP t) / n
+-}
+
+-- | A backprop-able version of T.sumall
+sumallBP :: Reifies s W
+         => BTensor s
+         -> BAccReal s
+sumallBP = 
+  liftOp1 . op1 $ \t -> (T.sumall t, (dx t))
+  where
+    dx :: Toy -> T.HsAccReal -> Toy
+    -- the differential provided here is wrong, but I was trying to get the 
+    -- types to line up
+    -- the hack to multiply a tensor with a `HsReal` value: 
+    -- (tensorA + c*tensorA) - tensorA = c*tensorA
+    dx t x = T.csub (T.cadd t (T.acc2real x) t) 1.0 t
 
 
 main = do
@@ -42,12 +76,5 @@ main = do
     tb :: T.Tensor '[1, 2] <- makeTensor [7, 7]
     let id :: T.Tensor '[2, 1] = T.new
     T.fill_ id 1.0 
--- yes I went full-on lisp here because I ran out of patience
-    print (
-        evalBP (
-            meanSquareErr 2 bta) 
-        tb :: T.Tensor '[1, 2])
-    print (
-        gradBP (
-            meanSquareErr 2 bta) 
-        tb :: T.Tensor '[1, 2])
+    print $ tb
+--    print $ show $ typeOf mul
