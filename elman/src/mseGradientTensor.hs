@@ -34,11 +34,16 @@ makeTensor ls = do
 
 
 -- | 'xt' is the predicted
+-- BUG: why does this function return [NaN, NaN]
+-- when tensorA < tensorB ???
 squareErr :: Reifies s W
           => BTensor s  
           -> BTensor s
           -> BTensor s
-squareErr actual xt = (xt - actual) ** 2
+-- the infix power operator - ** - returned the above error
+-- when used on a tensor with negative numbers
+-- so here's my hack for squaring
+squareErr tensorA tensorB = (tensorB - tensorA) * (tensorB - tensorA)
 
 
 squareErr' :: Toy
@@ -47,13 +52,13 @@ squareErr' :: Toy
 squareErr' actual xt = 
     gradBP (squareErr $ auto actual) xt
 
-{-
+
 mean :: Reifies s W 
      => BVar s Double
      -> BTensor s  
      -> BAccReal s
 mean n t = (sumallBP t) / n
--}
+
 
 -- | A backprop-able version of T.sumall
 sumallBP :: Reifies s W
@@ -71,10 +76,10 @@ sumallBP =
 
 
 main = do
-    ta :: T.Tensor '[1, 2] <- makeTensor [9, 9]
+    ta :: T.Tensor '[1, 2] <- makeTensor [9.0, 9.0]
     let bta = auto ta 
-    tb :: T.Tensor '[1, 2] <- makeTensor [7, 7]
-    let id :: T.Tensor '[2, 1] = T.new
-    T.fill_ id 1.0 
-    print $ tb
---    print $ show $ typeOf mul
+    tb :: T.Tensor '[1, 2] <- makeTensor [7.0, 7.0]
+    -- so, we have a (theoretically) backprop-able version
+    -- of a tensor function
+    -- very theoretically, and this is not the nice type of "theory"
+    print $ evalBP ((mean 2) . squareErr bta) tb
