@@ -35,6 +35,15 @@ makeTensor ls = do
 
 ---------- Tensor Math Functions -----------
 
+
+-- just takes the difference between two tensors
+err :: Reifies s W
+    => BTensor s
+    -> BTensor s
+    -> BTensor s
+err act pr = pr - act
+
+
 -- | 'xt' is the predicted
 -- BUG: why does this function return [NaN, NaN]
 -- when tensorA < tensorB ???
@@ -45,26 +54,27 @@ sqErr :: Reifies s W
 -- the infix power operator - ** - returned the above error
 -- when used on a tensor with negative numbers
 -- so here's my hack for squaring
-sqErr tensorA tensorB = (tensorB - tensorA) * (tensorB - tensorA)
+sqErr act pr =  (err act pr) ^ 2
 
 
 -- | A backprop-able version of T.sumall
--- | with squared error
-sumallBP :: Reifies s W
-         => BTensor s
-         -> BAccReal s
-sumallBP = 
-  liftOp1 . op1 $ \t -> (T.sumall t, (dx t))
+-- | that adds the squared version of the tensor
+sumSquaredBP :: Reifies s W
+             => BTensor s
+             -> BAccReal s
+sumSquaredBP = 
+  liftOp1 . op1 $ \t -> (T.sumall (t ^ 2), (dx t))
   where
     dx :: Toy -> T.HsAccReal -> Toy
     dx t x = T.cmul t (T.constant x)
 
 
-mean :: Reifies s W
+-- Takes the mean of the square of the given tensor
+meanSquare :: Reifies s W
      => BAccReal s
      -> BTensor s
      -> BAccReal s
-mean n t = (sumallBP t) / n
+meanSquare n t = (sumSquaredBP t) / n
 
 
 
@@ -72,7 +82,14 @@ main = do
     ta :: T.Tensor '[1, 2] <- makeTensor [6.0, 6.0]
     let bta = auto ta 
     tb :: T.Tensor '[1, 2] <- makeTensor [9.0, 9.0]
-    -- so, we have a (theoretically) backprop-able version
-    -- of a tensor function
-    -- very theoretically, and this is not the nice type of "theory"
-    print $ gradBP ((mean 2) . (sqErr bta)) tb
+    -- so, we have a backprop-able version
+    -- of a tensor function, but we had to specifically
+    -- make a BP version of sum-squared, because I ran into 
+    -- type matching hell when I tried to make a purely 
+    -- BP-compatible version of =sumall=. The problem is
+    -- internal derivatives- I have to explicitly define the
+    -- internal derivative of the function, which leads to more
+    -- arguments than I want to. This can be solved by simply
+    -- using op2 or opN
+    print $ evalBP ((mean 2) . (err bta)) tb 
+    print $ gradBP ((mean 2) . (err bta)) tb
