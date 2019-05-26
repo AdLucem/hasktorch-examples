@@ -1,3 +1,6 @@
+{- Note: this right now is MSE optimization where all inputs = 1. i.e: the 'predicted' output, or the hypothesis, is only the weights. And both hypothesis and actual are integers, and learning rate is 1.0. Theoretically this should converge perfectly. -}
+
+
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -32,35 +35,21 @@ makeTensor ls = do
 
 ---------- Tensor Math Functions -----------
 
-
 -- | 'xt' is the predicted
 -- BUG: why does this function return [NaN, NaN]
 -- when tensorA < tensorB ???
-squareErr :: Reifies s W
-          => BTensor s  
-          -> BTensor s
-          -> BTensor s
+sqErr :: Reifies s W
+      => BTensor s  
+      -> BTensor s
+      -> BTensor s
 -- the infix power operator - ** - returned the above error
 -- when used on a tensor with negative numbers
 -- so here's my hack for squaring
-squareErr tensorA tensorB = (tensorB - tensorA) * (tensorB - tensorA)
-
-
-squareErr' :: Toy
-           -> Toy  
-           -> Toy
-squareErr' actual xt = 
-    gradBP (squareErr $ auto actual) xt
-
-
-mean :: Reifies s W 
-     => BVar s Double
-     -> BTensor s  
-     -> BAccReal s
-mean n t = (sumallBP t) / n
+sqErr tensorA tensorB = (tensorB - tensorA) * (tensorB - tensorA)
 
 
 -- | A backprop-able version of T.sumall
+-- | with squared error
 sumallBP :: Reifies s W
          => BTensor s
          -> BAccReal s
@@ -68,18 +57,22 @@ sumallBP =
   liftOp1 . op1 $ \t -> (T.sumall t, (dx t))
   where
     dx :: Toy -> T.HsAccReal -> Toy
-    -- the differential provided here is wrong, but I was trying to get the 
-    -- types to line up
-    -- the hack to multiply a tensor with a `HsReal` value: 
-    -- (tensorA + c*tensorA) - tensorA = c*tensorA
-    dx t x = T.csub (T.cadd t (T.acc2real x) t) 1.0 t
+    dx t x = T.cmul t (T.constant x)
+
+
+mean :: Reifies s W
+     => BAccReal s
+     -> BTensor s
+     -> BAccReal s
+mean n t = (sumallBP t) / n
+
 
 
 main = do
-    ta :: T.Tensor '[1, 2] <- makeTensor [9.0, 9.0]
+    ta :: T.Tensor '[1, 2] <- makeTensor [6.0, 6.0]
     let bta = auto ta 
-    tb :: T.Tensor '[1, 2] <- makeTensor [7.0, 7.0]
+    tb :: T.Tensor '[1, 2] <- makeTensor [9.0, 9.0]
     -- so, we have a (theoretically) backprop-able version
     -- of a tensor function
     -- very theoretically, and this is not the nice type of "theory"
-    print $ evalBP ((mean 2) . squareErr bta) tb
+    print $ gradBP ((mean 2) . (sqErr bta)) tb
