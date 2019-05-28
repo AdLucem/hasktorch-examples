@@ -77,11 +77,40 @@ meanSquare :: Reifies s W
 meanSquare n t = (sumSquaredBP t) / n
 
 
+step :: T.HsReal -> Toy -> Toy -> Toy
+step eta t grad = T.csub t eta grad
+
+
+sgdIter :: T.HsReal -> Int -> Toy -> Toy -> Toy
+sgdIter eta 0 actual params = params
+sgdIter eta steps actual params = 
+  sgdIter eta (steps - 1) actual updated
+  where
+    actualVar = auto actual
+    grad = gradBP ((meanSquare 2) . (err actualVar)) params
+    updated = step eta params grad
+
+
+sgdLoss :: T.HsReal -> T.HsReal -> Toy -> Toy -> Toy
+sgdLoss eps eta actual params =
+  if  (abs eval) > (abs eps)
+  then
+    sgdLoss eps eta actual updated
+  else
+    params
+  where
+    actualVar = auto actual
+    eval = evalBP ((meanSquare 2) . (err actualVar)) params
+    grad = gradBP ((meanSquare 2) . (err actualVar)) params
+    updated = step eta params grad
+
+
 
 main = do
-    ta :: T.Tensor '[1, 2] <- makeTensor [6.0, 6.0]
-    let bta = auto ta 
-    tb :: T.Tensor '[1, 2] <- makeTensor [9.0, 9.0]
+    actual :: T.Tensor '[1, 2] <- makeTensor [6.0, 6.0]
+    let actualVar = auto actual 
+    params :: T.Tensor '[1, 2] <- makeTensor [9.0, 9.0]
+    let eta = 1.0
     -- so, we have a backprop-able version
     -- of a tensor function, but we had to specifically
     -- make a BP version of sum-squared, because I ran into 
@@ -91,5 +120,10 @@ main = do
     -- internal derivative of the function, which leads to more
     -- arguments than I want to. This can be solved by simply
     -- using op2 or opN
-    print $ evalBP ((mean 2) . (err bta)) tb 
-    print $ gradBP ((mean 2) . (err bta)) tb
+
+    -- this is iterative SGD running for a fixed number
+    -- of timesteps
+    print $ sgdIter eta 10 actual params
+    -- this is SGD running until the loss function has
+    -- been minimized to a given amount
+    print $ sgdLoss 0.000000005 eta actual params
