@@ -13,12 +13,20 @@ import Numeric.Backprop
 import Data.Typeable
 
 
--- just takes the difference (error) between two tensors
+type Toy = T.Tensor '[1, 2]
+
+type BTensor s = BVar s (T.Tensor '[1, 2])
+
+type BAccReal s = BVar s T.HsAccReal
+
+
+
 err :: Reifies s W
     => BTensor s
     -> BTensor s
     -> BTensor s
-err act pr = pr - act
+    -> BTensor s
+err act inp params = (inp * params) - act
 
 
 -- BUG: why does this function return [NaN, NaN]
@@ -27,23 +35,26 @@ sqErr :: Reifies s W
       => BTensor s
       -> BTensor s
       -> BTensor s
+      -> BTensor s
 -- arguments: actual values, predicted values
 -- returns a tensor composed of square errors
-sqErr act pr =  (err act pr) ^ 2
+sqErr act inp params =  (err act inp params) ^ 2
 
 
 -- | A backprop-able version of T.sumall
 -- | that adds the squared version of the tensor
+-- NOTE: am here 30/5/19, am trying to get the derivative
+-- w.r.t both input and params
 squaredSumallBP :: Reifies s W
                 => BTensor s
                 -> BAccReal s
 squaredSumallBP =
-  liftOp1 . op1 $ \t -> (T.sumall (t ^ 2), (dx t))
+  liftOp1 . op1 $ \t -> (T.sumall t ^ 2, (dx t))
   where
     dx :: Toy -> T.HsAccReal -> Toy
     dx t x = T.cmul t (T.constant x)
 
-
+{-
 -- Takes the mean of the square of the given tensor
 meanSquare :: Reifies s W
      => BAccReal s
@@ -78,3 +89,4 @@ sgdLoss eps eta actual params =
     eval = evalBP ((meanSquare 2) . (err actualVar)) params
     grad = gradBP ((meanSquare 2) . (err actualVar)) params
     updated = step eta params grad
+-}
