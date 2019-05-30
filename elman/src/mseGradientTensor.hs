@@ -18,14 +18,14 @@ import Data.Typeable
 
 type Toy = T.Tensor '[1, 2]
 
-type BTensor s = BVar s (T.Tensor '[1, 2]) 
+type BTensor s = BVar s (T.Tensor '[1, 2])
 
 type BAccReal s = BVar s T.HsAccReal
 
 
 -- | defining a tensor of size 1 x something
-makeTensor :: (D.KnownDim a, KnownNat a) 
-           => [Double] 
+makeTensor :: (D.KnownDim a, KnownNat a)
+           => [Double]
            -> IO (T.Tensor '[1, a])
 makeTensor ls = do
     t <- T.fromList ls
@@ -48,7 +48,7 @@ err act pr = pr - act
 -- BUG: why does this function return [NaN, NaN]
 -- when tensorA < tensorB ???
 sqErr :: Reifies s W
-      => BTensor s  
+      => BTensor s
       -> BTensor s
       -> BTensor s
 -- the infix power operator - ** - returned the above error
@@ -62,7 +62,7 @@ sqErr act pr =  (err act pr) ^ 2
 sumSquaredBP :: Reifies s W
              => BTensor s
              -> BAccReal s
-sumSquaredBP = 
+sumSquaredBP =
   liftOp1 . op1 $ \t -> (T.sumall (t ^ 2), (dx t))
   where
     dx :: Toy -> T.HsAccReal -> Toy
@@ -83,7 +83,7 @@ step eta t grad = T.csub t eta grad
 
 sgdIter :: T.HsReal -> Int -> Toy -> Toy -> Toy
 sgdIter eta 0 actual params = params
-sgdIter eta steps actual params = 
+sgdIter eta steps actual params =
   sgdIter eta (steps - 1) actual updated
   where
     actualVar = auto actual
@@ -108,13 +108,13 @@ sgdLoss eps eta actual params =
 
 main = do
     actual :: T.Tensor '[1, 2] <- makeTensor [6.0, 6.0]
-    let actualVar = auto actual 
+    let actualVar = auto actual
     params :: T.Tensor '[1, 2] <- makeTensor [9.0, 9.0]
     let eta = 1.0
     -- so, we have a backprop-able version
     -- of a tensor function, but we had to specifically
-    -- make a BP version of sum-squared, because I ran into 
-    -- type matching hell when I tried to make a purely 
+    -- make a BP version of sum-squared, because I ran into
+    -- type matching hell when I tried to make a purely
     -- BP-compatible version of =sumall=. The problem is
     -- internal derivatives- I have to explicitly define the
     -- internal derivative of the function, which leads to more

@@ -26,7 +26,7 @@ executable mse-grad-list
 
 executable mse-grad-tensor
   main-is:             mseGradientTensor.hs
-  -- other-modules:
+  other-modules:       SGD.hs
   -- other-extensions:
   build-depends:       base >=4.11.1.0,
                        backprop,
