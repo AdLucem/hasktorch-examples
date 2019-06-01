@@ -20,61 +20,74 @@ type BTensor s = BVar s (T.Tensor '[1, 2])
 type BAccReal s = BVar s T.HsAccReal
 
 
-
+-- | returns the error between predicted values
+-- | and actual values, when given inputs
+-- | and a set of parameters for prediction
 err :: Reifies s W
     => BTensor s
     -> BTensor s
     -> BTensor s
     -> BTensor s
-err act inp params = (inp * params) - act
+err inp act params = (inp * params) - act
 
 
--- BUG: why does this function return [NaN, NaN]
--- when tensorA < tensorB ???
+-- takes in a set of inputs and returns a
+-- partially applied function that can calculate
+-- the difference between predicted and actual
+errForInputs :: Reifies s W
+             => BTensor s
+             -> (BTensor s ->  BTensor s ->  BTensor s)
+errForInputs inp = err inp
+
+
+-- | returns the squared error between predicted values
+-- | and actual values
 sqErr :: Reifies s W
       => BTensor s
       -> BTensor s
       -> BTensor s
       -> BTensor s
--- arguments: actual values, predicted values
--- returns a tensor composed of square errors
-sqErr act inp params =  (err act inp params) ^ 2
+sqErr inp act params =  ((inp * params) - act) ^ 2
 
 
 -- | A backprop-able version of T.sumall
--- | that adds the squared version of the tensor
--- NOTE: am here 30/5/19, am trying to get the derivative
--- w.r.t both input and params
-squaredSumallBP :: Reifies s W
-                => BTensor s
-                -> BAccReal s
-squaredSumallBP =
-  liftOp1 . op1 $ \t -> (T.sumall t ^ 2, (dx t))
+sumallBP :: Reifies s W
+         => BTensor s
+         -> BAccReal s
+sumallBP =
+  liftOp1 . op1 $ \t -> (T.sumall t, (dx t))
   where
     dx :: Toy -> T.HsAccReal -> Toy
     dx t x = T.cmul t (T.constant x)
 
 {-
--- Takes the mean of the square of the given tensor
-meanSquare :: Reifies s W
-     => BAccReal s
-     -> BTensor s
-     -> BAccReal s
-meanSquare n t = (squaredSumallBP t) / n
+-- Takes the mean of the given value
+meanSquareError :: Reifies s W
+                => BAccReal s
+                -> BAccReal s
+                -> BAccReal s
+meanSquareError n inp act params = val / n
 
 
 step :: T.HsReal -> Toy -> Toy -> Toy
 step eta t grad = T.csub t eta grad
 
 
-sgdIter :: T.HsReal -> Int -> Toy -> Toy -> Toy
-sgdIter eta 0 actual params = params
-sgdIter eta steps actual params =
-  sgdIter eta (steps - 1) actual updated
+sgdIter :: T.HsReal  -- learning rate
+        -> Int       -- number of iterations
+        -> Toy       -- input vector-- TODO: make stochastic, give it 2-dim tensor
+        -> Toy       -- output vector -- TODO: same as above
+        -> Toy       -- parameters to be iterated on
+        -> Toy       -- final parameters
+sgdIter eta 0 input actual params = params
+sgdIter eta steps input actual params =
+  sgdIter eta (steps - 1) input actual updated
   where
     actualVar = auto actual
-    grad = gradBP ((meanSquare 2) . (err actualVar)) params
-    updated = step eta params grad
+    inputVar = auto input
+    gradient = gradBP ((mean 2) . sumallBP . (sqErr inputVar actualVar)) params
+    updated = step eta params gradient
+
 
 
 sgdLoss :: T.HsReal -> T.HsReal -> Toy -> Toy -> Toy

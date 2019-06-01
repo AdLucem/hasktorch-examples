@@ -30,6 +30,9 @@ main = do
     let actualVar = auto actual
     input :: T.Tensor '[1, 2] <- makeTensor [2.0, 2.0]
     let inputVar = auto input
-    params :: T.Tensor '[1, 2] <- makeTensor [4.0, 4.0]
+    params :: T.Tensor '[1, 2] <- makeTensor [5.0, 5.0]
     let eta = 1.0
-    print $ evalBP (sqErr actualVar inputVar) params 
+    let f inp act par = ((par * inp) - act) ^ 2
+    let f' = f input actual
+    print $ evalBP (sumallBP . (sqErr inputVar actualVar)) params
+    print $ gradBP (sumallBP . (sqErr inputVar actualVar)) params
