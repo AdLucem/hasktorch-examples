@@ -34,3 +34,4 @@ main = do
     let inputVar = auto input
     params :: T.Tensor '[1, 2] <- makeTensor [5.0, 5.0]
     print $ gdOptimize loss lossGrad 0.1 0.0000001 input actual params
+    print $ gdOptimizeBP 0.1 0.0000001 input actual params
