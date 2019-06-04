@@ -13,52 +13,69 @@ import Numeric.Backprop
 import Data.Typeable
 
 
-type Toy = T.Tensor '[1, 2]
+type Tensor = T.Tensor '[1, 2]
 
 type BTensor s = BVar s (T.Tensor '[1, 2])
 
 type BAccReal s = BVar s T.HsAccReal
 
+n :: Double
+n = 2.0
+
 
 -- | returns the error between predicted values
 -- | and actual values, when given inputs
 -- | and a set of parameters for prediction
-err :: Reifies s W
-    => BTensor s
-    -> BTensor s
-    -> BTensor s
-    -> BTensor s
-err inp act params = (inp * params) - act
+err :: Tensor
+    -> Tensor
+    -> Tensor
+    -> Tensor
+err inp act params = ((inp * params) - act) ^ 2
 
 
--- takes in a set of inputs and returns a
--- partially applied function that can calculate
--- the difference between predicted and actual
-errForInputs :: Reifies s W
-             => BTensor s
-             -> (BTensor s ->  BTensor s ->  BTensor s)
-errForInputs inp = err inp
+loss :: Tensor
+     -> Tensor
+     -> Tensor
+     -> Double
+loss inputs outputs params =
+  (T.sumall $ err inputs outputs params) / n
 
 
--- | returns the squared error between predicted values
--- | and actual values
-sqErr :: Reifies s W
-      => BTensor s
-      -> BTensor s
-      -> BTensor s
-      -> BTensor s
-sqErr inp act params =  ((inp * params) - act) ^ 2
+-- gradient of MSE function w.r.t every tensor element
+lossGrad :: Tensor
+         -> Tensor
+         -> Tensor
+         -> Tensor
+lossGrad inputs outputs params =
+  T.cdiv (2 * ((inputs * params) - outputs) * inputs) (T.constant n)
 
 
--- | A backprop-able version of T.sumall
-sumallBP :: Reifies s W
-         => BTensor s
-         -> BAccReal s
-sumallBP =
-  liftOp1 . op1 $ \t -> (T.sumall t, (dx t))
+gdStep :: Double -- learning rate
+       -> Tensor -- parameters
+       -> Tensor -- gradient
+       -> Tensor -- updated parameters
+gdStep lr params gradient = T.csub params lr gradient
+
+
+gdOptimize :: (Tensor -> Tensor -> Tensor -> Double)  -- loss function
+           -> (Tensor -> Tensor -> Tensor -> Tensor)   -- loss function gradient
+           -> Double     -- learning rate
+           -> Double     -- epsilon (amount gradient can be above zero)
+           -> Tensor     -- single input to be repeated
+           -> Tensor     -- single output to be repeated
+           -> Tensor     -- initial parameters
+           -> Tensor     -- optimized parameters
+gdOptimize lossFunc lossGrad lr eps inputs outputs params =
+  if (abs maxGradient) > eps
+  then
+    gdOptimize lossFunc lossGrad lr eps inputs outputs updatedParams
+  else
+    params
   where
-    dx :: Toy -> T.HsAccReal -> Toy
-    dx t x = T.cmul t (T.constant x)
+    gradient = lossGrad inputs outputs params
+    maxGradient = T.maxall gradient
+    updatedParams = gdStep lr params gradient
+
 
 {-
 -- Takes the mean of the given value

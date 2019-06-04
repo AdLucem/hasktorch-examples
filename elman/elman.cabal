@@ -37,7 +37,8 @@ executable mse-grad-tensor
 
 executable linear-regression
   main-is:             linearRegression.hs
-  other-modules:       SGD
+  other-modules:       SGD,
+                       SGDBP
   build-depends:       base >=4.11.1.0,
                        backprop,
                        hasktorch (==0.0.1 || >0.0.1) && <0.0.2,

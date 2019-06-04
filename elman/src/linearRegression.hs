@@ -12,6 +12,7 @@ import GHC.TypeLits
 import Numeric.Backprop
 import Data.Typeable
 import SGD
+import SGDBP
 
 
 -- | defining a tensor of size 1 x something
@@ -26,13 +27,10 @@ makeTensor ls = do
 
 
 main = do
+    random :: T.Tensor '[1, 2] <- makeTensor [3.0, 6.0]
     actual :: T.Tensor '[1, 2] <- makeTensor [6.0, 6.0]
     let actualVar = auto actual
     input :: T.Tensor '[1, 2] <- makeTensor [2.0, 2.0]
     let inputVar = auto input
     params :: T.Tensor '[1, 2] <- makeTensor [5.0, 5.0]
-    let eta = 1.0
-    let f inp act par = ((par * inp) - act) ^ 2
-    let f' = f input actual
-    print $ evalBP (sumallBP . (sqErr inputVar actualVar)) params
-    print $ gradBP (sumallBP . (sqErr inputVar actualVar)) params
+    print $ gdOptimize loss lossGrad 0.1 0.0000001 input actual params
