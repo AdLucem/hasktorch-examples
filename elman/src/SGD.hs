@@ -14,6 +14,9 @@ import Data.Typeable
 
 
 type Tensor = T.Tensor '[1, 2]
+type InputTensor = T.Tensor '[3, 2]
+type OutputTensor = T.Tensor '[3, 2]
+
 
 type BTensor s = BVar s (T.Tensor '[1, 2])
 
@@ -21,6 +24,15 @@ type BAccReal s = BVar s T.HsAccReal
 
 n :: Double
 n = 2.0
+
+-- | utility function using getRow
+getRow' :: T.Tensor '[3, 2]
+        -> Word
+        -> T.Tensor '[1, 2]
+getRow' t r = 
+    case (T.getRow t r) of
+        Nothing -> T.empty 
+        Just x -> x
 
 
 -- | returns the error between predicted values
@@ -57,6 +69,7 @@ gdStep :: Double -- learning rate
 gdStep lr params gradient = T.csub params lr gradient
 
 
+-- TODO: complete batch gradient descent 
 gdOptimize :: (Tensor -> Tensor -> Tensor -> Double)  -- loss function
            -> (Tensor -> Tensor -> Tensor -> Tensor)   -- loss function gradient
            -> Double     -- learning rate
@@ -73,6 +86,41 @@ gdOptimize lossFunc lossGrad lr eps inputs outputs params =
     params
   where
     gradient = lossGrad inputs outputs params
+    maxGradient = T.maxall gradient
+    updatedParams = gdStep lr params gradient
+
+
+-- stochastic gradient descent
+sgdOptimize :: (Tensor -> Tensor -> Tensor -> Double)  -- loss function
+            -> (Tensor -> Tensor -> Tensor -> Tensor)   -- loss function gradient
+            -> Double     -- learning rate
+            -> Double     -- epsilon (amount gradient can be above zero)
+            -> InputTensor     -- input matrix
+            -> OutputTensor     -- output matrix
+            -> Tensor     -- initial parameters
+            -> Tensor     -- optimized parameters
+sgdOptimize lossFunc lossGrad lr eps inputs outputs params =
+  sgdHelper numInputs lossFunc lossGrad lr eps inputs outputs params 
+  where
+    numInputs = T.size inputs 1
+
+
+sgdHelper :: Word  -- iteration number
+          -> (Tensor -> Tensor -> Tensor -> Double)  -- loss function
+          -> (Tensor -> Tensor -> Tensor -> Tensor)   -- loss function gradient
+          -> Double     -- learning rate
+          -> Double     -- epsilon (amount gradient can be above zero)
+          -> InputTensor     -- input matrix
+          -> OutputTensor     -- output matrix
+          -> Tensor     -- initial parameters
+          -> Tensor     -- optimized parameters
+sgdHelper 0 _ _ _ _ _ _ params = params
+sgdHelper numIter lossFunc lossGrad lr eps inputs outputs params =
+  sgdHelper (numIter - 1) lossFunc lossGrad lr eps inputs outputs updatedParams
+  where
+    inputVector = getRow' inputs numIter
+    outputVector = getRow' outputs numIter
+    gradient = lossGrad inputVector outputVector params
     maxGradient = T.maxall gradient
     updatedParams = gdStep lr params gradient
 
