@@ -1,4 +1,4 @@
--- Skeletal code for what I want to do
+-- Skeletal code for linear regression
 
 data SomeInput a = Tensor '[1, a]
 type SomeOutput a = SomeInput a
