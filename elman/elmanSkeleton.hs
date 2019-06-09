@@ -42,7 +42,10 @@ networkGradient :: ElmanStates
 
 
 -- anyway, backprop-through-time
-
+-- so the bit where I go from 'list of ElmanCells' to 'backprop-able list of parameters' is handwavy,
+-- but it depends on whether I use `flattenParameters` and `grad` or handwritten gradient functions
+-- (which, in turn, depends on if `grad`- the Torch function- works with a time-series of tensors)
+-- so I'm leaving it like this for now
 bptt :: ElmanStates  -- elman cell state at each timestep 
      -> [Tensor]     -- gradients at each timestep
 
